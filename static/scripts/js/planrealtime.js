@@ -665,6 +665,178 @@ $('#btn-clear-wp').on('click', function () {
 	lastPointID = 1;
 });
 
+/* ============ ::: Begin of ACO ============ */
+
+function randomBetween(min,max){
+    return (Math.random()*(max-min+1)+min)%max;
+}
+
+
+class Edge{
+	constructor(a, b, weight, initial_pheromone){
+		this.a = a;
+		this.b = b;
+		this.weight = weight;
+		this.pheromone = initial_pheromone;
+	}
+}
+
+class Ant{
+	constructor(alpha, beta, num_nodes, edges){
+		this.alpha = alpha
+		this.beta = beta
+		this.num_nodes = num_nodes
+		this.edges = edges
+		this.tour = []
+		this.distance = 0.0
+	}
+
+	/*
+		Return next node to visit
+	*/
+	_select_node(){
+        let roulette_wheel = 0.0;
+		let unvisited_nodes = [];
+
+		for(let _=0; _<this.num_nodes; _++){
+			if(!this.tour.includes(_)){
+				unvisited_nodes.push(_);
+			}
+		}
+
+		let heuristic_total = 0.0;
+		unvisited_nodes.forEach((unvisited) => {
+			heuristic_total += this.edges[this.tour[this.tour.length - 1]][unvisited].weight;
+		});
+
+		unvisited_nodes.forEach((unvisited) => {
+			roulette_wheel += Math.pow(this.edges[this.tour[this.tour.length - 1]][unvisited].pheromone, this.alpha) * Math.pow((heuristic_total / this.edges[this.tour[this.tour.length - 1]][unvisited].weight), this.beta);
+		});
+
+		let random_value = randomBetween(0.0, roulette_wheel);
+		let wheel_position = 0.0;
+        let next_node = null;
+        for(let i=0; i<unvisited_nodes.length; i++){
+            let unvisited = unvisited_nodes[i];
+			wheel_position += Math.pow(this.edges[this.tour[this.tour.length - 1]][unvisited].pheromone, this.alpha) * Math.pow((heuristic_total / this.edges[this.tour[this.tour.length - 1]][unvisited].weight), this.beta);
+			if(wheel_position >= random_value){
+                return unvisited;
+			}
+        }
+	}
+
+	/*
+		Ant traveling
+	*/
+	find_tour(){
+		// Determine ant traveling starting node
+		this.tour = [];
+        let random_start = Math.floor(randomBetween(0,this.num_nodes));
+		this.tour.push(random_start);
+		while(this.tour.length < this.num_nodes){
+            let next_node = this._select_node();
+			this.tour.push(next_node);
+		}
+        this.tour.push(this.tour[0]);
+		return this.tour;
+	}
+
+	/*
+		Return total distance
+	*/
+	get_distance(){
+		this.distance = 0.0;
+		for(let i=0; i<this.num_nodes; i++){
+            let FROM=this.tour[i];
+            let tour_to=(i+1) % (this.num_nodes);
+            let TO = this.tour[tour_to];
+			this.distance += this.edges[FROM][TO].weight;
+		}
+		return this.distance;
+	}
+}
+
+
+class ACO {
+	constructor(colony_size=10, alpha=1.0, beta=3.0, rho=0.1, pheromone_deposit_weight=1.0, initial_pheromone=1.0, steps=100, nodes=[], labels=[], node_list=[]){
+		this.node_list = node_list
+		this.colony_size = colony_size;
+		this.rho = rho;
+		this.pheromone_deposit_weight = pheromone_deposit_weight;
+		this.steps = steps
+		this.num_nodes = nodes.length;
+		this.nodes = nodes;
+
+		if(labels.length != 0){
+			this.labels = labels;
+		}else{
+			this.labels = [];
+			for(let i=0; i<=this.num_nodes; i++){
+				this.labels.push();
+			}
+		}
+		
+		// Setup edges
+		this.edges = [];
+		for(let i=0; i<this.num_nodes; i++){
+			let temp = [];
+			for(let j=0; j<this.num_nodes; j++){
+				temp.push();
+			}
+			this.edges.push(temp);
+		}
+
+		for(let i=0; i<this.num_nodes; i++){
+			for(let j=i+1; j<this.num_nodes; j++){
+				this.edges[i][j] = new Edge(i, j, Math.sqrt(Math.pow( this.nodes[i].lon - this.nodes[j].lon, 2.0) + Math.pow( this.nodes[i].lat - this.nodes[j].lat, 2.0)), initial_pheromone);
+				this.edges[j][i] = this.edges[i][j];
+			}
+		}
+
+		this.ants = [];
+		for(let _ = 0; _ < this.colony_size; _++){
+			this.ants.push(new Ant(alpha, beta, this.num_nodes, this.edges));
+		}
+
+		this.global_best_tour = [];
+		this.global_best_distance = 9999999;
+	}
+
+	_add_pheromone(tour, distance, weight=1.0){
+		let pheromone_to_add = this.pheromone_deposit_weight / distance;
+		for(let i=0; i<this.num_nodes; i++){
+			this.edges[tour[i]][tour[(i+1) % this.num_nodes]].pheromone += weight * pheromone_to_add;
+		}
+	}
+
+	_acs(){
+		for(let step=1; step<=this.steps; step++){
+			this.ants.forEach((ant) => {
+				this._add_pheromone(ant.find_tour(), ant.get_distance());
+				if(ant.distance < this.global_best_distance){
+					this.global_best_tour = ant.tour;
+					this.global_best_distance = ant.distance;
+				}
+			});
+
+			for(let i=0; i<this.num_nodes; i++){
+				for(let j=i+1; j<this.num_nodes; j++){
+					this.edges[i][j].pheromone *= (1.0 - this.rho);
+				}
+			}
+		}
+		console.log("BEST PATH");
+		console.table(this.global_best_tour);
+
+		this.best_tour_by_nodes = []
+		
+		for(let i=0; i<this.global_best_tour.length; i++){
+			this.best_tour_by_nodes[i] = this.node_list[this.global_best_tour[i]];
+		}
+	}
+}
+/* ============ ::: End of ACO ============ */
+
 /* ======== START ::: Clustering using K-Means ======== */
 
 $('#btn-cluster').on('click', () => {
@@ -741,8 +913,9 @@ $('#btn-cluster').on('click', () => {
 				if(match != 0){
 					SALES_CENTROID[j].lon = total_lon / match;
 					SALES_CENTROID[j].lat = total_lat / match;
-	
-					Overlay_HomePoint_List.get(Number(j)).setPosition(convertFromLongLat([SALES_CENTROID[j].lon, SALES_CENTROID[j].lat]));
+
+					// Move HomePoint Overlay to new value
+					// Overlay_HomePoint_List.get(Number(j)).setPosition(convertFromLongLat([SALES_CENTROID[j].lon, SALES_CENTROID[j].lat]));
 				}
 			}
 			console.table("CENTROID UPDATE: ");
@@ -752,20 +925,102 @@ $('#btn-cluster').on('click', () => {
 	// console.table("distance_to_sales");
 	// console.table(distance_to_sales);
 
-	// console.table("nearest_to_sales");
-	// console.table(nearest_to_sales);
-	
+	console.table("FINAL:: ");
+	console.table(nearest_to_sales);
+
+	SALES_CENTROID.forEach((item, index) => {
+		let temp_nodes = [];
+		temp_nodes.push(-1);
+		nearest_to_sales.forEach((val, key) => {
+			if(val.sales_id == index){
+				temp_nodes.push(key);
+			}
+		});
+
+
+		console.log("CLUSTER LISTT:: ");
+		console.table(temp_nodes);
+
+		// START THE ACO THINGS
+		let colony_size = 20
+		let steps = 20;
+		let nodes = [];
+
+		nodes.push({
+			lon: HomePoint_List.get(Number(index))[0],
+			lat: HomePoint_List.get(Number(index))[1],
+		});
+		temp_nodes.forEach((item, key) => {
+			if(item != -1){
+				nodes.push({
+					lon: WayPoint_List.get(Number(item))[0],
+					lat: WayPoint_List.get(Number(item))[1]
+				})	
+			}
+		})
+
+		hasil = new ACO(colony_size, 1.0, 3.0, 0.1, 1.0, 1.0, steps, nodes, [], temp_nodes);
+		hasil._acs();
+		console.table(hasil.best_tour_by_nodes);
+		
+        let pos_home = hasil.best_tour_by_nodes.findIndex((value) => value === -1);
+		// console.log("post_home", pos_home);
+
+		let path = [];
+		path.push([HomePoint_List.get(Number(index))[0], HomePoint_List.get(Number(index))[1]]);
+        
+		let i = pos_home+1;
+		while(true){
+			if(i>=hasil.best_tour_by_nodes.length) {
+				i=0;
+			}
+			if(i == pos_home){
+				break;
+			}
+
+			if(hasil.best_tour_by_nodes[i] != -1){
+				path.push([
+					WayPoint_List.get(Number(hasil.best_tour_by_nodes[i]))[0],
+					WayPoint_List.get(Number(hasil.best_tour_by_nodes[i]))[1]
+				])
+			}
+			i++;
+		}
+
+		path.push([HomePoint_List.get(Number(index))[0], HomePoint_List.get(Number(index))[1]]);
+		console.log(path);
+
+		// Then draw the lines
+		for (var k = 0; k < path.length; k++) {
+			path[k] = ol.proj.transform(path[k], 'EPSG:4326', 'EPSG:3857');
+		}
+		var missionfeatureLine = new ol.Feature({
+			geometry: new ol.geom.LineString(path)
+		});
+
+	    missionvectorLineSource.addFeature(missionfeatureLine);
+	})
+
+
+
+	// for(let i=0; i<SALES_CENTROID.length; i++){
+	// 	let temp_nodes = [];
+	// 	nearest_to_sales.forEach((item) =>{
+	// 		if(item.sales_id == i){
+	// 			temp_nodes.push()
+	// 		}
+	// 	});
+	// }
+
+	// Then Find it By ACO
+
 });
 /* ======== END ::: Clustering using K-Means ======== */
 
-// End of Clear WP
 
 // -- Global msg -- //
 
-console.log(currentStatusDisplay);
-
 map.getView().setCenter(ol.proj.transform([112.79862761540215, -7.276434779150961], 'EPSG:4326', 'EPSG:3857'));
-
 map.on('click', function (evt) {
 	var coords = ol.proj.toLonLat(evt.coordinate);
 
