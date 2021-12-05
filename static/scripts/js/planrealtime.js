@@ -1,6 +1,6 @@
 // enable/disable console.log
-// console.log = function() {}
-// console.table = function() {}
+console.log = function() {}
+console.table = function() {}
 
 
 /*
@@ -81,11 +81,11 @@ var permArr = [], usedChars = [];
 var missionvectorLineSource = new ol.source.Vector({});
 var missionvectorLineStyle = new ol.style.Style({
   fill: new ol.style.Fill({
-    color: '#00FF00',
+    color: '#00FF88',
     weight: 4
   }),
   stroke: new ol.style.Stroke({
-    color: '#00FF00',
+    color: '#00FF88',
     width: 2
   })
 });
@@ -443,7 +443,7 @@ function addHomePointOverlay(coordinate) {
 	let current_sales_id = Number(Sales_List.size);
 	Sales_List.set(current_sales_id, {
 		key: current_sales_id,
-		color: COLOR_LIST[current_sales_id],
+		color: COLOR_LIST[current_sales_id % 5],
 		home: [lon, lat],
 		missionList:[],
 		waypointCluster:[]
@@ -809,8 +809,10 @@ class ACO {
 		}
 	}
 
-	_acs(){
-		for(let step=1; step<=this.steps; step++){
+	_acs(homeIndex){
+		let step = 0;
+		let tempFeature = null;
+		const stepOnce = () => {
 			this.ants.forEach((ant) => {
 				this._add_pheromone(ant.find_tour(), ant.get_distance());
 				if(ant.distance < this.global_best_distance){
@@ -824,7 +826,61 @@ class ACO {
 					this.edges[i][j].pheromone *= (1.0 - this.rho);
 				}
 			}
+
+			this.best_tour_by_nodes = []
+		
+			for(let i=0; i<this.global_best_tour.length; i++){
+				this.best_tour_by_nodes[i] = this.node_list[this.global_best_tour[i]];
+			}
+			
+
+			let pos_home = this.best_tour_by_nodes.findIndex((value) => value === -1);
+			// console.log("post_home", pos_home);
+
+			let path = [];
+			path.push([HomePoint_List.get(Number(homeIndex))[0], HomePoint_List.get(Number(homeIndex))[1]]);
+			
+			let i = pos_home+1;
+			while(true){
+				if(i>=this.best_tour_by_nodes.length) {
+					i=0;
+				}
+				if(i == pos_home){
+					break;
+				}
+
+				if(this.best_tour_by_nodes[i] != -1){
+					path.push([
+						WayPoint_List.get(Number(this.best_tour_by_nodes[i]))[0],
+						WayPoint_List.get(Number(this.best_tour_by_nodes[i]))[1]
+					])
+				}
+				i++;
+			}
+
+			path.push([HomePoint_List.get(Number(homeIndex))[0], HomePoint_List.get(Number(homeIndex))[1]]);
+			console.log(path);
+
+			// Then draw the lines
+			for (var k = 0; k < path.length; k++) {
+				path[k] = ol.proj.transform(path[k], 'EPSG:4326', 'EPSG:3857');
+			}
+			var missionfeatureLine = new ol.Feature({
+				geometry: new ol.geom.LineString(path)
+			});
+			if(tempFeature){
+				missionvectorLineSource.removeFeature(tempFeature);
+			}
+			tempFeature = missionfeatureLine;
+			missionvectorLineSource.addFeature(tempFeature);
+			
+			if(step < this.steps) setTimeout(stepOnce, 150)
+			else {
+				return;
+			};
+			step++
 		}
+		stepOnce();
 		console.log("BEST PATH");
 		console.table(this.global_best_tour);
 
@@ -840,6 +896,7 @@ class ACO {
 /* ======== START ::: Clustering using K-Means ======== */
 
 $('#btn-cluster').on('click', () => {
+	missionvectorLineSource.clear();
 	// alert("WORK")
 	let THIS_maxit = 3;
 	let SALES_CENTROID = [];
@@ -960,45 +1017,47 @@ $('#btn-cluster').on('click', () => {
 		})
 
 		hasil = new ACO(colony_size, 1.0, 3.0, 0.1, 1.0, 1.0, steps, nodes, [], temp_nodes);
-		hasil._acs();
+		console.log("INI DALAM CENTROID ::: ", index)
+		hasil._acs(index);
 		console.table(hasil.best_tour_by_nodes);
 		
-        let pos_home = hasil.best_tour_by_nodes.findIndex((value) => value === -1);
-		// console.log("post_home", pos_home);
+        // let pos_home = hasil.best_tour_by_nodes.findIndex((value) => value === -1);
+		// // console.log("post_home", pos_home);
 
-		let path = [];
-		path.push([HomePoint_List.get(Number(index))[0], HomePoint_List.get(Number(index))[1]]);
+		// let path = [];
+		// path.push([HomePoint_List.get(Number(index))[0], HomePoint_List.get(Number(index))[1]]);
         
-		let i = pos_home+1;
-		while(true){
-			if(i>=hasil.best_tour_by_nodes.length) {
-				i=0;
-			}
-			if(i == pos_home){
-				break;
-			}
+		// let i = pos_home+1;
+		// while(true){
+		// 	if(i>=hasil.best_tour_by_nodes.length) {
+		// 		i=0;
+		// 	}
+		// 	if(i == pos_home){
+		// 		break;
+		// 	}
 
-			if(hasil.best_tour_by_nodes[i] != -1){
-				path.push([
-					WayPoint_List.get(Number(hasil.best_tour_by_nodes[i]))[0],
-					WayPoint_List.get(Number(hasil.best_tour_by_nodes[i]))[1]
-				])
-			}
-			i++;
-		}
+		// 	if(hasil.best_tour_by_nodes[i] != -1){
+		// 		path.push([
+		// 			WayPoint_List.get(Number(hasil.best_tour_by_nodes[i]))[0],
+		// 			WayPoint_List.get(Number(hasil.best_tour_by_nodes[i]))[1]
+		// 		])
+		// 	}
+		// 	i++;
+		// }
 
-		path.push([HomePoint_List.get(Number(index))[0], HomePoint_List.get(Number(index))[1]]);
-		console.log(path);
+		// path.push([HomePoint_List.get(Number(index))[0], HomePoint_List.get(Number(index))[1]]);
+		// console.log(path);
 
-		// Then draw the lines
-		for (var k = 0; k < path.length; k++) {
-			path[k] = ol.proj.transform(path[k], 'EPSG:4326', 'EPSG:3857');
-		}
-		var missionfeatureLine = new ol.Feature({
-			geometry: new ol.geom.LineString(path)
-		});
+		// // Then draw the lines
+		// for (var k = 0; k < path.length; k++) {
+		// 	path[k] = ol.proj.transform(path[k], 'EPSG:4326', 'EPSG:3857');
+		// }
+		// var missionfeatureLine = new ol.Feature({
+		// 	geometry: new ol.geom.LineString(path)
+		// });
 
-	    missionvectorLineSource.addFeature(missionfeatureLine);
+	    // missionvectorLineSource.addFeature(missionfeatureLine);
+		// alert("DONE CENTROID")
 	})
 
 
