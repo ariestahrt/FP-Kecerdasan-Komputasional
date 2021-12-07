@@ -1,6 +1,6 @@
 // enable/disable console.log
-console.log = function() {}
-console.table = function() {}
+// console.log = function() {}
+// console.table = function() {}
 
 
 /*
@@ -876,6 +876,7 @@ class ACO {
 			
 			if(step < this.steps) setTimeout(stepOnce, 150)
 			else {
+				alert("DONE!~");
 				return;
 			};
 			step++
@@ -897,11 +898,11 @@ class ACO {
 
 $('#btn-cluster').on('click', () => {
 	missionvectorLineSource.clear();
-	// alert("WORK")
-	let THIS_maxit = 3;
+	let THIS_maxit = Number(prompt("CLUSTER :: MAX ITERATION?", _default="3"));
 	let SALES_CENTROID = [];
 	let distance_to_sales = [];
 	let nearest_to_sales = [];
+	let PIGEONHOLE_FLAG = false;
 
 	Sales_List.forEach(function (item, key){
 		SALES_CENTROID.push({
@@ -930,7 +931,7 @@ $('#btn-cluster').on('click', () => {
 	});
 
 	console.table("CURRENT CENTROID: ");
-	console.table(SALES_CENTROID);	
+	console.table(SALES_CENTROID);
 
 	for(let i=0; i< THIS_maxit; i++){
 			WayPoint_List.forEach(function (wp_item, wp_key){
@@ -949,9 +950,15 @@ $('#btn-cluster').on('click', () => {
 							distance: distance_to_sales[j][wp_key]
 						};
 					}
-				}			
+				}
 			});
-	
+			
+			// UNTUK MENCARI PERBEDAAN TERBESAR SETIAP TOTAL CLUSTER YANG DIPEROLEH
+			let SUM_CLUSTER = {
+				MIN: 99999,
+				MAX: -99999
+			}
+
 			// Then update CENTROID
 			for(let j=0; j<SALES_CENTROID.length; j++){
 				let total_lon = 0;
@@ -966,17 +973,39 @@ $('#btn-cluster').on('click', () => {
 						total_lat += coord[1];					
 					}
 				}
+
+				if(match < SUM_CLUSTER.MIN){
+					SUM_CLUSTER.MIN = match;
+				}
+
+				if(match > SUM_CLUSTER.MAX){
+					SUM_CLUSTER.MAX = match;
+				}
+
 				// Then update centroid value:
 				if(match != 0){
 					SALES_CENTROID[j].lon = total_lon / match;
 					SALES_CENTROID[j].lat = total_lat / match;
 
+					// ENABLE INI UNTUK MEMINDAHKAN CENTROID
 					// Move HomePoint Overlay to new value
 					// Overlay_HomePoint_List.get(Number(j)).setPosition(convertFromLongLat([SALES_CENTROID[j].lon, SALES_CENTROID[j].lat]));
 				}
 			}
+
+			// STOPING CRITERIA :: SEMUA SALES TELAH MENDAPATKAN PEMBAGIAN YANG ADIL
+			// BERDASARKAN PRINSIP PIGEONHOLE
+			if(Math.abs(SUM_CLUSTER.MAX - SUM_CLUSTER.MIN) <= 1){
+				alert("CLUSTERING STOPPED!\nREASON: Waypoint telah terbagi sama rata");
+				PIGEONHOLE_FLAG = true;
+				break;
+			}
+
 			console.table("CENTROID UPDATE: ");
 			console.table(SALES_CENTROID);
+	}
+	if(!PIGEONHOLE_FLAG){
+		alert("CLUSTERING STOPPED!\nREASON: Maksimum iterasi telah tercapai")
 	}
 
 	// console.table("distance_to_sales");
@@ -984,6 +1013,10 @@ $('#btn-cluster').on('click', () => {
 
 	console.table("FINAL:: ");
 	console.table(nearest_to_sales);
+
+	// START THE ACO THINGS
+	let colony_size = Number(prompt("ANT COLONY OPTIMIZATION :: COLONY SIZE?", _default="20"));
+	let steps = Number(prompt("ANT COLONY OPTIMIZATION :: MAX STEP?", _default="20"));
 
 	SALES_CENTROID.forEach((item, index) => {
 		let temp_nodes = [];
@@ -998,9 +1031,6 @@ $('#btn-cluster').on('click', () => {
 		console.log("CLUSTER LISTT:: ");
 		console.table(temp_nodes);
 
-		// START THE ACO THINGS
-		let colony_size = 20
-		let steps = 20;
 		let nodes = [];
 
 		nodes.push({
@@ -1017,7 +1047,7 @@ $('#btn-cluster').on('click', () => {
 		})
 
 		hasil = new ACO(colony_size, 1.0, 3.0, 0.1, 1.0, 1.0, steps, nodes, [], temp_nodes);
-		console.log("INI DALAM CENTROID ::: ", index)
+		// console.log("INI DALAM CENTROID ::: ", index)
 		hasil._acs(index);
 		console.table(hasil.best_tour_by_nodes);
 		
@@ -1059,8 +1089,6 @@ $('#btn-cluster').on('click', () => {
 	    // missionvectorLineSource.addFeature(missionfeatureLine);
 		// alert("DONE CENTROID")
 	})
-
-
 
 	// for(let i=0; i<SALES_CENTROID.length; i++){
 	// 	let temp_nodes = [];
