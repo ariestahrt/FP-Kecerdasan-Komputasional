@@ -219,7 +219,7 @@ body{
 }
 
 .wp-popup .wahana-box ul li{
-  padding 10px;
+  padding: 10px;
   text-align: center;
   border: 1px;
   border-style: solid;
@@ -269,4 +269,13 @@ body{
 /* Add some hover effects to buttons */
 .form-container .btn:hover, .open-button:hover {
   opacity: 1;
+}
+
+.text-icon {
+  font-size: 2rem !important;
+}
+
+.menu-container {
+  display: flex;
+  align-items: center;
 }

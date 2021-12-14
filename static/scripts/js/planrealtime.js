@@ -3,6 +3,24 @@
 // console.table = function() {}
 
 
+// Toastr options
+toastr.options = {
+	"closeButton": false,
+	"debug": false,
+	"newestOnTop": false,
+	"progressBar": false,
+	"positionClass": "toast-top-full-width",
+	"preventDuplicates": false,
+	"onclick": null,
+	"showDuration": "300",
+	"hideDuration": "1000",
+	"timeOut": "3000",
+	"extendedTimeOut": "1000",
+	"showEasing": "swing",
+	"hideEasing": "linear",
+	"showMethod": "fadeIn",
+	"hideMethod": "fadeOut"
+}
 /*
 
 	Sales_List map structure:
@@ -368,7 +386,7 @@ function addWayPointOverlay(coordinate, id, fromGet=false) {
 
 		if (draw_line.active) {
 			if (!draw_line.new) {
-				alert("This is not Home Point, Try Again!");
+				toastr["warning"]("REASON: This is not Home Point, Try Again!", "ERROR")
 			} else {
 
 				if((Number(Mission_List.get(Number(TGO_mission_counter)).length) < 2)){
@@ -876,7 +894,7 @@ class ACO {
 			
 			if(step < this.steps) setTimeout(stepOnce, 150)
 			else {
-				alert("DONE!~");
+				toastr["success"]("", "DONE!");
 				return;
 			};
 			step++
@@ -903,6 +921,7 @@ $('#btn-cluster').on('click', () => {
 	let distance_to_sales = [];
 	let nearest_to_sales = [];
 	let PIGEONHOLE_FLAG = false;
+	let NEW_CENTROID_FLAG = false;
 
 	Sales_List.forEach(function (item, key){
 		SALES_CENTROID.push({
@@ -984,11 +1003,13 @@ $('#btn-cluster').on('click', () => {
 
 				// Then update centroid value:
 				if(match != 0){
+					if(SALES_CENTROID[j].lon != total_lon / match || SALES_CENTROID[j].lat != total_lat / match){
+						NEW_CENTROID_FLAG = true;						
+					}
 					SALES_CENTROID[j].lon = total_lon / match;
 					SALES_CENTROID[j].lat = total_lat / match;
 
 					// ENABLE INI UNTUK MEMINDAHKAN CENTROID
-					// Move HomePoint Overlay to new value
 					// Overlay_HomePoint_List.get(Number(j)).setPosition(convertFromLongLat([SALES_CENTROID[j].lon, SALES_CENTROID[j].lat]));
 				}
 			}
@@ -996,16 +1017,19 @@ $('#btn-cluster').on('click', () => {
 			// STOPING CRITERIA :: SEMUA SALES TELAH MENDAPATKAN PEMBAGIAN YANG ADIL
 			// BERDASARKAN PRINSIP PIGEONHOLE
 			if(Math.abs(SUM_CLUSTER.MAX - SUM_CLUSTER.MIN) <= 1){
-				alert("CLUSTERING STOPPED!\nREASON: Waypoint telah terbagi sama rata");
+				toastr["success"]("REASON: Waypoint telah terbagi sama rata.", "CLUSTERING STOPPED!")
 				PIGEONHOLE_FLAG = true;
 				break;
 			}
 
-			console.table("CENTROID UPDATE: ");
-			console.table(SALES_CENTROID);
+			// STOPING CRITERIA :: NEW_CENTROID_FLAG TIDAK BERUBAH
+			if(!NEW_CENTROID_FLAG){
+				toastr["success"]("REASON: Pusat centroid sudah tidak berubah.", "CLUSTERING STOPPED!")
+				break;
+			}
 	}
-	if(!PIGEONHOLE_FLAG){
-		alert("CLUSTERING STOPPED!\nREASON: Maksimum iterasi telah tercapai")
+	if(!PIGEONHOLE_FLAG &&  NEW_CENTROID_FLAG){
+		toastr["success"]("REASON: Maksimum iterasi telah tercapai.", "CLUSTERING STOPPED!")
 	}
 
 	// console.table("distance_to_sales");

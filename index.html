@@ -11,8 +11,9 @@
     <link rel="stylesheet" href="static/scripts/css/app.css">
     <link rel="stylesheet" href="static/scripts/css/sweetalert.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.4.0/css/ol.css" type="text/css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="static/scripts/css/styles.css">
     <style>
-
         html, body{
             margin: 0;
             padding: 0;
@@ -127,50 +128,51 @@
             // If you want module.exports to be empty, uncomment:
             // module.exports = {};
         } catch(e) {}
-     </script></head>
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+</head>
 <body class="light">
 <!--app-->
 <div id="app">
-
     <!--main-->
     <div style="margin: 0; padding: 0; height: 100%; width: auto;">
         <div class="container-fluid relative animatedParent animateOnce " style="margin: 0; padding: 0; height: 100%; width: 100%;">
             <!--MAP DISINI-->
             <!-- <div style="background-color: aquamarine; height: 100px; width: 100px;"></div> -->
             <div id="map" class="map"></div>
-            <div class="card no-b my-3 slimScrollDiv" style="background-color: transparent; bottom: 0px; position: fixed; width: auto; height: 50px; left: 105px; right:105px;">
+            <div class="card no-b my-3 slimScrollDiv" style="background-color: transparent; bottom: 0px; position: fixed; width: auto; height: min-content; left: 105px; right:105px;">
                 <div class="card-body" style="padding: 2px;">
-                    <div class="row" style="margin-left: 0px; margin-right: 0px;">
+                    <div class="row menu-container" style="margin-left: 0px; margin-right: 0px;">
                         <div class="sm-col">
-                            <button class="btn btn-default" title="Togle add sales" id="btn-set-home" data-toggle="off" style="opacity: 0.7; margin: 5px; width: 40px; ">
-                                <i class="icon-person text-blue"></i>
+                            <button class="btn btn-default" title="Toggle add sales" id="btn-set-home" data-toggle="off" style="opacity: 0.7; margin: 5px; width: 60px; ">
+                                <i class="icon-home text-dark text-icon"></i>
                             </button>
                         </div>
                         <div class="sm-col">
-                            <button class="btn btn-default" title="Togle add waypoint" id="btn-toggle-marker" data-toggle="off" style="opacity: 0.7; margin: 5px; width: 40px; ">
-                                <i class="icon-map-marker text-yellow"></i>
+                            <button class="btn btn-default" title="Toggle add waypoint" id="btn-toggle-marker" data-toggle="off" style="opacity: 0.7; margin: 5px; width: 60px; ">
+                                <i class="icon-map-marker text-dark text-icon"></i>
                             </button>
                         </div>
                         <div class="sm-col">
-                            <button class="btn btn-default" title="Togle draw line" id="btn-toggle-draw" data-toggle="off" style="opacity: 0.7; margin: 5px; width: 40px; ">
-                                <i class="icon-linear_scale text-dark"></i>
+                            <button class="btn btn-default" title="Toggle draw line" id="btn-toggle-draw" data-toggle="off" style="opacity: 0.7; margin: 5px; width: 60px; ">
+                                <i class="icon-linear_scale text-dark text-icon"></i>
                             </button>
                         </div>
                         <div class="sm-col">
-                            <button class="btn btn-default" title="Togle drag waypoint" id="btn-toggle-drag" data-toggle="off" style="opacity: 0.7; margin: 5px; width: 40px; ">
-                                <i class="icon-hand-pointer-o text-dark"></i>
+                            <button class="btn btn-default" title="Toggle drag waypoint" id="btn-toggle-drag" data-toggle="off" style="opacity: 0.7; margin: 5px; width: 60px; ">
+                                <i class="icon-hand-pointer-o text-dark text-icon"></i>
                             </button>
                         </div>
                         <div class="sm-col">
-                            <button class="btn btn-default" title="Clear Waypoint" id="btn-clear-wp" style="opacity: 0.7; margin: 5px; width: 40px; ">
-                                <i class="icon-eraser text-dark"></i>
+                            <button class="btn btn-default" title="Clear Waypoint" id="btn-clear-wp" style="opacity: 0.7; margin: 5px; width: 60px; ">
+                                <i class="icon-eraser text-dark text-icon"></i>
                             </button>
                         </div>
                         <div class="sm-col">
-                            <button class="btn btn-info btn-sm" id="btn-cluster" style="opacity: 0.7; margin: 5px; height: 38px;">CLUSTER</button>
+                            <button class="btn btn-info text-icon" id="btn-cluster" style="opacity: 0.7; margin: 5px;">START</button>
                         </div>
                         <div class="sm-col">
-                            <p id="pointer-coordinate" style="background-color:rgba(0,60,136,.7); margin-bottom: 0px; margin-top: 10px; color: white;"><b>Longitude:</b> ??? <b>Latitude:</b> ??? </p>
+                            <p id="pointer-coordinate" style="background-color:rgba(0,60,136,.7); padding: 0.5rem 1rem; color: white; margin: 5px; border-radius: 10px;"><b>Longitude:</b> ??? <b>Latitude:</b> ??? </p>
                         </div>
                     </div>
                 </div>
